@@ -3,6 +3,7 @@ from PySide6.QtCore import QTimer
 from gui import Ui_MainWindow
 from kicad_pcb import KiCadPCB
 from version import version
+from pcbsvg import PCBSVG
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -18,6 +19,8 @@ class MainWindow(QMainWindow):
         connected, status = self.pcb.connect_kicad()
         if connected:
             self.ui.statusbar.showMessage(f"Connected to KiCad {self.pcb.kicad.get_version()}")
+            PCBSVG(self.pcb)
+            print("xxxx")
         else:
             self.ui.statusbar.showMessage(status)
             QMessageBox.information(self, "Message", status)

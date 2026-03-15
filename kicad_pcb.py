@@ -1,21 +1,24 @@
 import re
 import math
 from kipy import KiCad
-from kipy.board import Board
+from kipy.board import Board, BoardOriginType
 from kipy.board_types import Track, ArcTrack, BoardSegment, BoardRectangle, BoardPolygon, BoardArc, BoardCircle
 from typing import Set, Optional, List, Tuple, DefaultDict
 from collections import defaultdict
 from kipy.geometry import Vector2
 from dataclasses import dataclass, field
-from data import LayerMap, PointData, ViaData, TrackData, ArcTrackData
-from kipy.proto.board.board_types_pb2 import BoardLayer
+from data import LayerMap, PointData, ViaData, TrackData, ArcTrackData, PcbData, PadData, BoxData
+from kipy.proto.board.board_types_pb2 import BoardLayer, PadType
 
 class KiCadPCB:
     def __init__(self):
         self.kicad: Optional[KiCad] = None
         self.board: Optional[Board] = None
         self.connected: bool = False
+        self.box: Optional[BoxData] = None
         self.stackup: List[LayerMap] = []
+        self.pcbdata: PcbData = PcbData()
+        self.layers: List[str] = []
 
     def connect_kicad(self) -> Tuple[bool, str]:
         try:
@@ -23,10 +26,15 @@ class KiCadPCB:
             #print(f"nets: {nets}")
             self.footprints = []
             self.kicad = KiCad()
-            #self.board = self.kicad.get_board()
+            self.board = self.kicad.get_board()
             self.connected = True
 
-            self.get_net_classes()
+            self.get_edge_cuts()
+            self.get_stackup()
+            self.get_vias()
+            self.get_tracks()
+            self.get_arc_tracks()
+            print("done")
             return True, "Connected to KiCad"
             
         except Exception as e:
@@ -39,7 +47,7 @@ class KiCadPCB:
             self.layers = []
             return False, str(e)
         
-    def get_edge_cuts(self):
+    def get_edge_cuts(self) -> BoxData:
         bounds = {
             'minx': float('inf'),
             'miny': float('inf'),
@@ -70,16 +78,22 @@ class KiCadPCB:
                     update_bounds(cx - radius, cy - radius, bounds)
                     update_bounds(cx + radius, cy + radius, bounds)
                 elif isinstance(shape, BoardPolygon):
-                    print(shape.bounding_box())
-                    print(shape.polygons)
-                """
-                elif isinstance(shape, BoardPolygon):
-                    for polygon_with_holes in shape.points:
-                        for node in polygon_with_holes.outline.nodes:
+                    #print(shape.bounding_box())
+                    for p in shape.polygons:
+                        for node in p.outline.nodes:
                             update_bounds(node.point.x, node.point.y, bounds)
-                """
-
-        return bounds['minx'], bounds['miny'], bounds['maxx'], bounds['maxy']
+        offset = self.board.get_origin(BoardOriginType.BOT_GRID)
+        minx = bounds['minx'] - offset.x
+        maxx = bounds['maxx'] - offset.x
+        miny = bounds['miny'] - offset.y
+        maxy = bounds['maxy'] - offset.y
+        print(f"{minx}, {maxx}, {miny}, {maxy}")
+        self.box = BoxData(
+            minx = bounds['minx'],
+            miny = bounds['miny'],
+            maxx = bounds['maxx'],
+            maxy = bounds['maxy']
+        )
 
     def get_net_classes(self):
         nets = KiCad().get_board().get_nets()
@@ -104,13 +118,13 @@ class KiCadPCB:
         self.stackup.sort(key=lambda x: x.id)
         self.layers = [layer.name for layer in self.stackup]
         
-    def get_via(self):
+    def get_vias(self):
         for via in self.board.get_vias():
             via = ViaData(
                 name =via.net.name,
                 diameter = via.diameter,
                 drill= via.drill_diameter,
-                position = PointData(via.position.x, via.position.y),
+                pos = PointData(via.position.x, via.position.y),
                 layers = via.padstack.layers
             )
             self.pcbdata.vias.append(via)
@@ -125,6 +139,7 @@ class KiCadPCB:
                 start = PointData(t.start.x, t.start.y),
                 end = PointData(t.end.x, t.end.y)
             )
+            self.pcbdata.tracks.append(track)
 
     
     def get_arc_tracks(self):
@@ -144,6 +159,30 @@ class KiCadPCB:
                 angle = t.angle(),
                 length = t.length()
             )
+            self.pcbdata.arc_tracks.append(track)
+    
+    def get_pads(self):
+        for p in self.board.get_pads():
+            pad_type = 'unknown'
+            match p.pad_type:
+                case PadType.PT_PTH:
+                    pad_type = 'pth'
+                case PadType.PT_SMD:
+                    pad_type = 'smd'
+                case PadType.PT_EDGE_CONNECTOR:
+                    pad_type = 'edge'
+            print(p.position)
+            print(p.net.name)
+            print(pad_type)
+            print(p.padstack.layers)
+            copper_layers = p.padstack.copper_layers
+            for copper in copper_layers:
+                print(copper.shape)
+                print(copper.size)
+            #pad = PadData(
+                #name = p.net.name,
+            #)
+            #self.pcbdata.pads.append(pad)
 
 def update_bounds(x, y, bounds):
     """

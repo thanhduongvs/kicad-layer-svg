@@ -2,7 +2,6 @@ from kipy import KiCad
 
 if __name__ == "__main__":
     kicad = KiCad()
-    #board = kicad.get_board()
     net_classes = kicad.get_project(kicad.get_board().document).get_net_classes()
     class_names = [t.name for t in net_classes]
     print(f"class_names: {class_names}")

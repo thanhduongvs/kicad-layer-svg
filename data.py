@@ -1,5 +1,5 @@
-from typing import List
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List, Optional
 
 @dataclass
 class LayerMap:
@@ -23,7 +23,7 @@ class ViaData:
     name: str
     diameter: int
     drill: int
-    position: PointData
+    pos: PointData
     layers: List[int]
 
 @dataclass
@@ -49,23 +49,25 @@ class ArcTrackData:
     angle: float
     length: float
 
+@dataclass
 class PadData:
+    name: str
     type: str
+    layer: int
     pos: PointData
     size: PointData
     angle: float
     shape: str
-    net: str
-    layer: int
-
+    
+@dataclass
 class PcbData:
-    def __init__(self, box):
-        self.box:BoxData = box
-        self.vias:List[ViaData] = []
-        self.tracks:List[TrackData] = []
-        self.pads:List[PadData] = []
+    box: Optional[BoxData] = None
+    vias: List[ViaData] = field(default_factory=list)
+    tracks: List[TrackData] = field(default_factory=list)
+    arc_tracks: List[ArcTrackData] = field(default_factory=list)
+    pads: List[PadData] = field(default_factory=list)
 
+@dataclass
 class NetClass:
-    def __init__(self, name):
-        self.name = name
-        self.nets = []
+    name: str
+    nets: List[PadData] = field(default_factory=list)
