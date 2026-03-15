@@ -1,0 +1,25 @@
+{
+    "$schema": "https://go.kicad.org/api/schemas/v1",
+    "identifier": "vn.thanhduongvs.track-optimizer",
+    "name": "Track Optimizer",
+    "description": "Automatically clean up unconnected track ends (stubs) and merge overlapping/collinear tracks",
+    "runtime": {
+        "type": "python",
+        "min_version": "3.10"
+    },
+    "actions": [
+        {
+            "identifier": "track-optimizer",
+            "name": "Track Optimizer",
+            "description": "Automatically clean up unconnected track ends (stubs) and merge overlapping/collinear tracks",
+            "show-button": true,
+            "scopes": [
+                "pcb"
+            ],
+            "entrypoint": "main.py",
+            "icons-light": [
+                "icon.png"
+            ]
+        }
+    ]
+}

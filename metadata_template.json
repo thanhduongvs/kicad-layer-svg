@@ -1,0 +1,38 @@
+{
+    "$schema": "https://go.kicad.org/pcm/schemas/v1",
+    "name": "Track Optimizer",
+    "description": "Automatically clean up unconnected track ends (stubs) and merge overlapping/collinear tracks.",
+    "description_full": "A powerful Python-based plugin to keep your KiCad PCB designs clean and DRC-error-free. It features advanced geometry algorithms to recursively hunt down and remove dangling track stubs, and merges collinear or overlapping track segments into single continuous traces, greatly optimizing your board's routing.",
+    "identifier": "vn.thanhduongvs.track-optimizer",
+    "type": "plugin",
+    "runtime": {
+        "type": "python",
+        "min_version": "3.10"
+    },
+    "author": {
+        "name": "Thanh Duong",
+        "contact": {
+            "github": "https://github.com/thanhduongvs"
+        }
+    },
+    "license": "MIT",
+    "resources": {
+        "homepage": "https://github.com/thanhduongvs/kicad-track-optimizer"
+    },
+    "versions": [
+        {
+            "version": "VERSION",
+            "status": "stable",
+            "kicad_version": "9.0",
+            "runtime": "ipc",
+            "download_sha256": "SHA256",
+            "download_size": DOWNLOAD_SIZE,
+            "download_url": "https://raw.githubusercontent.com/thanhduongvs/kicad-track-optimizer/main/pcm/track-optimizer-VERSION.zip",
+            "install_size": INSTALL_SIZE,
+            "platforms": [
+                "linux",
+                "windows"
+            ]
+        }
+    ]
+}
