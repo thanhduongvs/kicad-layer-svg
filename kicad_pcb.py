@@ -7,7 +7,7 @@ from typing import Set, Optional, List, Tuple, DefaultDict
 from collections import defaultdict
 from kipy.geometry import Vector2
 from dataclasses import dataclass, field
-from data import LayerMap, PointData, ViaData, TrackData, ArcTrackData, PcbData, PadData, BoxData
+from data import LayerMap, PointData, ViaData, TrackData, ArcTrackData, PcbData, PadData, BoxData, EdgeData
 from kipy.proto.board.board_types_pb2 import BoardLayer, PadType, PadStackShape, DrillShape
 
 class KiCadPCB:
@@ -61,15 +61,41 @@ class KiCadPCB:
                 if isinstance(shape, BoardSegment):
                     update_bounds(shape.start.x, shape.start.y, bounds)
                     update_bounds(shape.end.x, shape.end.y, bounds)
+                    edge =  EdgeData(
+                        type = 'segment',
+                        width = shape.attributes.stroke.width,
+                        start = PointData(shape.start.x, shape.start.y),
+                        end = PointData(shape.end.x, shape.end.y),
+                        mid = PointData(0, 0),
+                        radius = 0
+                    )
+                    self.pcbdata.edge_cuts.append(edge)
 
                 elif isinstance(shape, BoardRectangle):
                     update_bounds(shape.top_left.x, shape.top_left.y, bounds)
-                    update_bounds(shape.bottom_right.x, shape.bottom_right.y, bounds)            
+                    update_bounds(shape.bottom_right.x, shape.bottom_right.y, bounds) 
+                    edge =  EdgeData(
+                        type = 'rectangle',
+                        width = shape.attributes.stroke.width,
+                        start = PointData(shape.top_left.x, shape.top_left.y),
+                        end = PointData(shape.bottom_right.x, shape.bottom_right.y),
+                        mid = PointData(0, 0),
+                        radius = 0
+                    )
+                    self.pcbdata.edge_cuts.append(edge)           
                 elif isinstance(shape, BoardArc):
                     update_bounds(shape.start.x, shape.start.y, bounds)
                     update_bounds(shape.mid.x, shape.mid.y, bounds)
                     update_bounds(shape.end.x, shape.end.y, bounds)
-                    
+                    edge =  EdgeData(
+                        type = 'arc',
+                        width = shape.attributes.stroke.width,
+                        start = PointData(shape.start.x, shape.start.y),
+                        end = PointData(shape.end.x, shape.end.y),
+                        mid = PointData(shape.mid.x, shape.mid.y),
+                        radius = shape.radius()
+                    )
+                    self.pcbdata.edge_cuts.append(edge)
                 elif isinstance(shape, BoardCircle):
                     cx, cy = shape.center.x, shape.center.y
                     rx, ry = shape.radius_point.x, shape.radius_point.y
@@ -83,6 +109,7 @@ class KiCadPCB:
                     for p in shape.polygons:
                         for node in p.outline.nodes:
                             update_bounds(node.point.x, node.point.y, bounds)
+
         offset = self.board.get_origin(BoardOriginType.BOT_GRID)
         minx = bounds['minx'] - offset.x
         maxx = bounds['maxx'] - offset.x

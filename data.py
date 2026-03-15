@@ -61,12 +61,22 @@ class PadData:
     drill_shape: str
 
 @dataclass
+class EdgeData:
+    type: str
+    width: int
+    start: PointData
+    end: PointData
+    mid: PointData
+    radius: float
+
+@dataclass
 class PcbData:
     box: Optional[BoxData] = None
     vias: List[ViaData] = field(default_factory=list)
     tracks: List[TrackData] = field(default_factory=list)
     arc_tracks: List[ArcTrackData] = field(default_factory=list)
     pads: List[PadData] = field(default_factory=list)
+    edge_cuts: List[EdgeData] = field(default_factory=list)
 
 @dataclass
 class NetClass:

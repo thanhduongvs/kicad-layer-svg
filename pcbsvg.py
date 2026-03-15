@@ -19,9 +19,29 @@ class PCBSVG:
         zoom_factor = 20
         self.SCALE = 1e-6 * zoom_factor
 
-        # Tính kích thước mặt giấy SVG
-        dx_px = (kicad.box.maxx - kicad.box.minx) * self.SCALE
-        dy_px = (kicad.box.maxy - kicad.box.miny) * self.SCALE
+        # ==========================================
+        # TÍNH MARGIN DỰA TRÊN 2 * WIDTH CỦA EDGE CUTS
+        # ==========================================
+        max_edge_width = 0
+        if self.kicad.pcbdata.edge_cuts:
+            # Lấy độ dày lớn nhất trong tất cả các đường viền
+            max_edge_width = max(edge.width for edge in self.kicad.pcbdata.edge_cuts)
+        
+        # Nếu không có đường viền nào hoặc width bị bằng 0, fallback về 0.1mm (100,000 nm)
+        if max_edge_width == 0:
+            max_edge_width = 100000
+            
+        margin_nm = 2 * max_edge_width
+
+        # Cập nhật tọa độ biên mới với lề (tính toán trực tiếp bằng nanomet)
+        self.draw_minx = kicad.box.minx - margin_nm
+        self.draw_miny = kicad.box.miny - margin_nm
+        self.draw_maxx = kicad.box.maxx + margin_nm
+        self.draw_maxy = kicad.box.maxy + margin_nm
+
+        # Tính kích thước mặt giấy SVG dựa trên biên mới
+        dx_px = (self.draw_maxx - self.draw_minx) * self.SCALE
+        dy_px = (self.draw_maxy - self.draw_miny) * self.SCALE
 
         self.layer_id_to_idx = {l.id: i for i, l in enumerate(self.kicad.stackup)}
 
@@ -218,6 +238,41 @@ class PCBSVG:
             ctx.fill()
             ctx.restore()
 
+        # ==========================================
+        # 5. VẼ EDGE CUTS (Đường viền bo mạch)
+        # ==========================================
+        for edge in self.kicad.pcbdata.edge_cuts:
+            # Quy đổi tọa độ và kích thước sang pixel
+            w_mm = edge.width * self.SCALE
+            if w_mm == 0:
+                w_mm = 0.1 * 1e6 * self.SCALE  # Đề phòng width = 0 thì cho nét vẽ mặc định
+                
+            sx_mm = (edge.start.x - minx) * self.SCALE
+            sy_mm = (edge.start.y - miny) * self.SCALE
+            ex_mm = (edge.end.x - minx) * self.SCALE
+            ey_mm = (edge.end.y - miny) * self.SCALE
+
+            # Lặp qua tất cả các lớp đồng để vẽ viền bo mạch lên mọi file SVG
+            for ctx in self.layer_contexts:
+                ctx.save()
+                ctx.set_source_rgb(0.4, 0.4, 0.4) # Màu xám cho viền
+                ctx.set_line_width(w_mm)
+                ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+                
+                ctx.new_path()
+                
+                if edge.type == 'segment':
+                    ctx.move_to(sx_mm, sy_mm)
+                    ctx.line_to(ex_mm, ey_mm)
+                    
+                elif edge.type == 'rectangle':
+                    # Tính chiều rộng và chiều cao của hình chữ nhật
+                    rect_w = ex_mm - sx_mm
+                    rect_h = ey_mm - sy_mm
+                    ctx.rectangle(sx_mm, sy_mm, rect_w, rect_h)
+                    
+                ctx.stroke()
+                ctx.restore()
         # ==========================================
         # 5. Lưu File
         # ==========================================
