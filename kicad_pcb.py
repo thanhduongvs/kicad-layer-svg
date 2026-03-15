@@ -153,11 +153,7 @@ class KiCadPCB:
                 end = PointData(t.end.x, t.end.y),
                 mid = PointData(t.mid.x, t.mid.y),
                 center = PointData(t.center().x, t.center().y),
-                radius = t.radius(),
-                start_angle = t.start_angle(),
-                end_angle = t.end_angle(),
-                angle = t.angle(),
-                length = t.length()
+                radius = t.radius()
             )
             self.pcbdata.arc_tracks.append(track)
     

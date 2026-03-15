@@ -44,10 +44,6 @@ class ArcTrackData:
     mid: PointData
     center: PointData
     radius: float
-    start_angle: float
-    end_angle: float
-    angle: float
-    length: float
 
 @dataclass
 class PadData:
