@@ -270,9 +270,42 @@ class PCBSVG:
                     rect_w = ex_mm - sx_mm
                     rect_h = ey_mm - sy_mm
                     ctx.rectangle(sx_mm, sy_mm, rect_w, rect_h)
+                
+                elif edge.type == 'arc':
+                    # Tính toán tọa độ tâm, điểm giữa và bán kính ra Pixel
+                    cx = (edge.center.x - minx) * self.SCALE
+                    cy = (edge.center.y - miny) * self.SCALE
+                    mx = (edge.mid.x - minx) * self.SCALE
+                    my = (edge.mid.y - miny) * self.SCALE
+                    r_mm = edge.radius * self.SCALE
                     
+                    # Tính các góc radian
+                    start_rad = math.atan2(sy_mm - cy, sx_mm - cx)
+                    end_rad = math.atan2(ey_mm - cy, ex_mm - cx)
+                    mid_rad = math.atan2(my - cy, mx - cx)
+
+                    # Xác định chiều quay
+                    diff1 = (mid_rad - start_rad) % (2 * math.pi)
+                    diff2 = (end_rad - mid_rad) % (2 * math.pi)
+                    is_clockwise = (diff1 + diff2) < (2 * math.pi + 1e-4)
+
+                    # Vẽ cung tròn
+                    if is_clockwise:
+                        ctx.arc(cx, cy, r_mm, start_rad, end_rad)
+                    else:
+                        ctx.arc_negative(cx, cy, r_mm, start_rad, end_rad)
+                elif edge.type == 'circle':
+                    # Tính toán tọa độ tâm và bán kính ra Pixel
+                    cx_mm = (edge.center.x - minx) * self.SCALE
+                    cy_mm = (edge.center.y - miny) * self.SCALE
+                    r_mm = edge.radius * self.SCALE
+                    
+                    # ctx.arc(tâm_x, tâm_y, bán_kính, góc_bắt_đầu, góc_kết_thúc)
+                    # 2 * math.pi tương đương 360 độ (một vòng tròn khép kín)
+                    ctx.arc(cx_mm, cy_mm, r_mm, 0, 2 * math.pi)
                 ctx.stroke()
                 ctx.restore()
+                
         # ==========================================
         # 5. Lưu File
         # ==========================================

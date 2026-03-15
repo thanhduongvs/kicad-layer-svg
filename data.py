@@ -67,6 +67,7 @@ class EdgeData:
     start: PointData
     end: PointData
     mid: PointData
+    center: PointData
     radius: float
 
 @dataclass

@@ -66,6 +66,7 @@ class KiCadPCB:
                         width = shape.attributes.stroke.width,
                         start = PointData(shape.start.x, shape.start.y),
                         end = PointData(shape.end.x, shape.end.y),
+                        center = PointData(0, 0),
                         mid = PointData(0, 0),
                         radius = 0
                     )
@@ -79,6 +80,7 @@ class KiCadPCB:
                         width = shape.attributes.stroke.width,
                         start = PointData(shape.top_left.x, shape.top_left.y),
                         end = PointData(shape.bottom_right.x, shape.bottom_right.y),
+                        center = PointData(0, 0),
                         mid = PointData(0, 0),
                         radius = 0
                     )
@@ -93,6 +95,7 @@ class KiCadPCB:
                         start = PointData(shape.start.x, shape.start.y),
                         end = PointData(shape.end.x, shape.end.y),
                         mid = PointData(shape.mid.x, shape.mid.y),
+                        center = PointData(shape.center().x, shape.center().y),
                         radius = shape.radius()
                     )
                     self.pcbdata.edge_cuts.append(edge)
@@ -104,11 +107,44 @@ class KiCadPCB:
                     
                     update_bounds(cx - radius, cy - radius, bounds)
                     update_bounds(cx + radius, cy + radius, bounds)
+                    
+                    edge = EdgeData(
+                        type = 'circle',
+                        width = shape.attributes.stroke.width,
+                        start = PointData(cx, cy),  # Bắt buộc của dataclass
+                        end = PointData(cx, cy),    # Bắt buộc của dataclass
+                        mid = PointData(0, 0),
+                        center = PointData(cx, cy), # Dữ liệu thực tế để vẽ
+                        radius = radius             # Dữ liệu thực tế để vẽ
+                    )
+                    self.pcbdata.edge_cuts.append(edge)
                 elif isinstance(shape, BoardPolygon):
-                    #print(shape.bounding_box())
                     for p in shape.polygons:
-                        for node in p.outline.nodes:
+                        nodes = p.outline.nodes
+                        if not nodes:
+                            continue
+                            
+                        # Cập nhật Bounding Box cho tất cả các đỉnh
+                        for node in nodes:
                             update_bounds(node.point.x, node.point.y, bounds)
+                            
+                        # Tạo các đoạn thẳng (segment) nối các đỉnh với nhau
+                        num_nodes = len(nodes)
+                        for i in range(num_nodes):
+                            start_node = nodes[i]
+                            # Lấy đỉnh tiếp theo, nếu là đỉnh cuối thì quay lại đỉnh 0
+                            end_node = nodes[(i + 1) % num_nodes]
+                            
+                            edge = EdgeData(
+                                type='segment',
+                                width=shape.attributes.stroke.width,
+                                start=PointData(start_node.point.x, start_node.point.y),
+                                end=PointData(end_node.point.x, end_node.point.y),
+                                center = PointData(0, 0),
+                                mid = PointData(0, 0),
+                                radius = 0
+                            )
+                            self.pcbdata.edge_cuts.append(edge)
 
         offset = self.board.get_origin(BoardOriginType.BOT_GRID)
         minx = bounds['minx'] - offset.x
