@@ -56,7 +56,6 @@ class KiCadPCB:
             'maxy': float('-inf')
         }
         for shape in self.board.get_shapes():
-            #print(shape)
             if shape.layer == BoardLayer.BL_Edge_Cuts:
                 if isinstance(shape, BoardSegment):
                     update_bounds(shape.start.x, shape.start.y, bounds)
@@ -111,11 +110,11 @@ class KiCadPCB:
                     edge = EdgeData(
                         type = 'circle',
                         width = shape.attributes.stroke.width,
-                        start = PointData(cx, cy),  # Bắt buộc của dataclass
-                        end = PointData(cx, cy),    # Bắt buộc của dataclass
+                        start = PointData(cx, cy),
+                        end = PointData(cx, cy),
                         mid = PointData(0, 0),
-                        center = PointData(cx, cy), # Dữ liệu thực tế để vẽ
-                        radius = radius             # Dữ liệu thực tế để vẽ
+                        center = PointData(cx, cy),
+                        radius = radius
                     )
                     self.pcbdata.edge_cuts.append(edge)
                 elif isinstance(shape, BoardPolygon):

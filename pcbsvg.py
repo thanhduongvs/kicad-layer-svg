@@ -305,7 +305,88 @@ class PCBSVG:
                 ctx.restore()
                 
         # ==========================================
-        # 5. Lưu File
+        # 6. XÓA TRACK ĐI QUA LỖ KHOAN (HOLES)
+        # Tối ưu: Gom Path và chỉ fill() 1 lần duy nhất để tránh lỗi lồng mask trên SVG
+        # ==========================================
+        
+        # 6.0. Khởi tạo path trống trên tất cả các layer
+        for ctx in self.layer_contexts:
+            ctx.new_path()
+
+        # 6.1. Gom lỗ khoan của Vias
+        for via in self.kicad.pcbdata.vias:
+            vx_mm = (via.pos.x - minx) * self.SCALE
+            vy_mm = (via.pos.y - miny) * self.SCALE
+            drill_mm = via.drill * self.SCALE
+
+            for layer_id in via.layers:
+                idx = self.layer_id_to_idx.get(layer_id, -1)
+                if idx == -1: continue
+                
+                ctx = self.layer_contexts[idx]
+                ctx.new_sub_path() # QUAN TRỌNG: Ngắt nét để các lỗ tròn không bị nối dây với nhau
+                ctx.arc(vx_mm, vy_mm, drill_mm / 2, 0, 2 * math.pi)
+
+        # 6.2. Gom lỗ khoan của Pads (Chân PTH)
+        for pad in self.kicad.pcbdata.pads:
+            if not getattr(pad, 'drill_size', None):
+                continue
+                
+            dx_mm = pad.drill_size.x * self.SCALE
+            dy_mm = pad.drill_size.y * self.SCALE
+            
+            if dx_mm > 0 or dy_mm > 0:
+                pad_layers = getattr(pad, 'layers', [])
+                if not pad_layers:
+                    single_layer = getattr(pad, 'layer', None)
+                    pad_layers = [single_layer] if single_layer else []
+
+                target_indices = set()
+                for layer_id in pad_layers:
+                    if layer_id == '*.Cu':
+                        target_indices.update(self.layer_id_to_idx.values())
+                    else:
+                        idx = self.layer_id_to_idx.get(layer_id, -1)
+                        if idx != -1:
+                            target_indices.add(idx)
+
+                px_mm = (pad.pos.x - minx) * self.SCALE
+                py_mm = (pad.pos.y - miny) * self.SCALE
+
+                for idx in target_indices:
+                    if idx < 0 or idx >= len(self.layer_contexts): 
+                        continue
+                        
+                    ctx = self.layer_contexts[idx]
+                    
+                    # Dùng matrix thay vì save()/restore() để KHÔNG LÀM MẤT các path vừa gom ở trên
+                    original_matrix = ctx.get_matrix()
+                    
+                    ctx.translate(px_mm, py_mm)
+                    if getattr(pad, 'angle', 0) != 0:
+                        ctx.rotate(math.radians(pad.angle))
+                    
+                    ctx.new_sub_path() # Ngắt nét
+                    if dx_mm != dy_mm: 
+                        # Lưu ý: Trong hàm self._create_oval_path của bạn KHÔNG ĐƯỢC có dòng ctx.new_path()
+                        self._create_oval_path(ctx, dx_mm, dy_mm)
+                    else:              
+                        drill_d = max(dx_mm, dy_mm)
+                        ctx.arc(0, 0, drill_d / 2, 0, 2 * math.pi)
+                    
+                    ctx.set_matrix(original_matrix) # Trả lại ma trận tọa độ không gian thực
+
+        # 6.3. THỰC THI "CỤC TẨY" VÀ FILL (Chỉ làm 1 lần cho mỗi context)
+        for ctx in self.layer_contexts:
+            # Kiểm tra nếu có nét vẽ nào đã được gom thì mới fill
+            if ctx.has_current_point():
+                ctx.save()
+                ctx.set_operator(cairo.OPERATOR_DEST_OUT)
+                ctx.fill()
+                ctx.restore()
+
+        # ==========================================
+        # 7. Lưu File
         # ==========================================
         for surface in self.surfaces:
             surface.finish()
