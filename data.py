@@ -52,9 +52,14 @@ class PadData:
     layer: int
     pos: PointData
     size: PointData
+    offset: PointData
     angle: float
     shape: str
-    
+    rounding_ratio: float
+    chamfer_ratio: float
+    drill_size: PointData
+    drill_shape: str
+
 @dataclass
 class PcbData:
     box: Optional[BoxData] = None

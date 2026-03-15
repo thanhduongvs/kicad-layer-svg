@@ -8,7 +8,7 @@ from collections import defaultdict
 from kipy.geometry import Vector2
 from dataclasses import dataclass, field
 from data import LayerMap, PointData, ViaData, TrackData, ArcTrackData, PcbData, PadData, BoxData
-from kipy.proto.board.board_types_pb2 import BoardLayer, PadType
+from kipy.proto.board.board_types_pb2 import BoardLayer, PadType, PadStackShape, DrillShape
 
 class KiCadPCB:
     def __init__(self):
@@ -34,6 +34,7 @@ class KiCadPCB:
             self.get_vias()
             self.get_tracks()
             self.get_arc_tracks()
+            self.get_pads()
             print("done")
             return True, "Connected to KiCad"
             
@@ -167,18 +168,48 @@ class KiCadPCB:
                     pad_type = 'smd'
                 case PadType.PT_EDGE_CONNECTOR:
                     pad_type = 'edge'
-            print(p.position)
-            print(p.net.name)
-            print(pad_type)
-            print(p.padstack.layers)
+
             copper_layers = p.padstack.copper_layers
-            for copper in copper_layers:
-                print(copper.shape)
-                print(copper.size)
-            #pad = PadData(
-                #name = p.net.name,
-            #)
-            #self.pcbdata.pads.append(pad)
+            copper = copper_layers[0]
+            shape = 'unknown'
+            drill_shape = 'unknown'
+            match p.padstack.drill.shape:
+                case DrillShape.DS_CIRCLE:
+                    drill_shape = 'circle'
+                case DrillShape.DS_OBLONG:
+                    shape = 'oblong'
+    
+            match copper.shape:
+                case PadStackShape.PSS_CIRCLE:
+                    shape = 'circle'
+                case PadStackShape.PSS_RECTANGLE:
+                    shape = 'rectangle'
+                case PadStackShape.PSS_OVAL:
+                    shape = 'oval'
+                case PadStackShape.PSS_TRAPEZOID:
+                    shape = 'trapezoid'
+                case PadStackShape.PSS_ROUNDRECT:
+                    shape = 'roundrect'
+                case PadStackShape.PSS_CHAMFEREDRECT:
+                    shape = 'chamferedrect'
+            for l in p.padstack.layers:
+                if BoardLayer.BL_F_Cu <= l <= BoardLayer.BL_B_Cu:
+                    pad = PadData(
+                        name = p.net.name,
+                        type = pad_type,
+                        layer = l,
+                        pos = PointData(p.position.x, p.position.y),
+                        size = PointData(copper.size.x, copper.size.y),
+                        offset = PointData(copper.offset.x, copper.offset.y),
+                        angle = p.padstack.angle.degrees,
+                        shape = shape,
+                        rounding_ratio = copper.corner_rounding_ratio,
+                        chamfer_ratio = copper.chamfer_ratio,
+                        drill_size = PointData(p.padstack.drill.diameter.x, p.padstack.drill.diameter.y),
+                        drill_shape = drill_shape
+                    )
+                    self.pcbdata.pads.append(pad)
+
 
 def update_bounds(x, y, bounds):
     """

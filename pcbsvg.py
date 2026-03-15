@@ -144,61 +144,110 @@ class PCBSVG:
         # ==========================================
         # 4. VẼ PADS (Chân linh kiện)
         # ==========================================
-        """
         for pad in self.kicad.pcbdata.pads:
             idx = self.layer_id_to_idx.get(pad.layer, -1)
             if idx == -1: continue
             
             ctx = self.layer_contexts[idx]
             
+            # Quy đổi kích thước sang mm
             px_mm = (pad.pos.x - minx) * self.SCALE
             py_mm = (pad.pos.y - miny) * self.SCALE
             sx_mm = pad.size.x * self.SCALE
             sy_mm = pad.size.y * self.SCALE
 
             ctx.save()
-            ctx.set_source_rgb(0.7, 0.0, 0.0) # Màu đỏ đậm cho Pad
+            
+            # Lấy màu tự động theo Net (Mặc định đỏ đậm nếu không có)
+            color = getattr(self, 'net_to_color', {}).get(pad.name, (0.8, 0.2, 0.2))
+            ctx.set_source_rgb(*color) 
             
             # Dịch chuyển và xoay hệ tọa độ tại tâm Pad
             ctx.translate(px_mm, py_mm)
             if pad.angle != 0:
                 ctx.rotate(math.radians(pad.angle))
 
-            if pad.shape == "circle":
-                ctx.new_path()
+            ctx.new_path()
+            shape_type = str(pad.shape).lower()
+            
+            # 1. CIRCULAR (Tròn)
+            if "circle" in shape_type:
                 ctx.arc(0, 0, sx_mm / 2, 0, 2*math.pi)
-                ctx.fill()
                 
-            elif pad.shape == "rect":
-                ctx.new_path()
-                # Cairo vẽ rect từ góc trên trái, nên lùi lại nửa chiều dài và rộng
+            # 2. OVAL (Bầu dục / Pill shape)
+            elif "oval" in shape_type:
+                r = min(sx_mm, sy_mm) / 2
+                if sx_mm > sy_mm:
+                    l = (sx_mm / 2) - r
+                    ctx.arc(l, 0, r, -math.pi/2, math.pi/2)    # Cung bên phải
+                    ctx.arc(-l, 0, r, math.pi/2, 3*math.pi/2)  # Cung bên trái
+                else:
+                    t = (sy_mm / 2) - r
+                    ctx.arc(0, t, r, 0, math.pi)               # Cung bên dưới
+                    ctx.arc(0, -t, r, math.pi, 2*math.pi)      # Cung bên trên
+                ctx.close_path()
+
+            # 3. ROUNDED RECTANGLE (Chữ nhật bo tròn)
+            elif "roundrect" in shape_type:
+                # Tạm tính bán kính bo góc = 25% cạnh ngắn nhất
+                # Chú ý: Bạn nên cập nhật PadData để lấy corner_radius thực tế từ KiCad API
+                r = min(sx_mm, sy_mm) * 0.25 
+                w, h = sx_mm, sy_mm
+                ctx.arc(w/2 - r, h/2 - r, r, 0, math.pi/2)             # Góc Bottom-Right
+                ctx.arc(-w/2 + r, h/2 - r, r, math.pi/2, math.pi)      # Góc Bottom-Left
+                ctx.arc(-w/2 + r, -h/2 + r, r, math.pi, 3*math.pi/2)   # Góc Top-Left
+                ctx.arc(w/2 - r, -h/2 + r, r, 3*math.pi/2, 2*math.pi)  # Góc Top-Right
+                ctx.close_path()
+
+            # 4. CHAMFERED RECTANGLE (Chữ nhật vát góc)
+            elif "chamferedrect" in shape_type:
+                # Tạm tính kích thước vát = 20%
+                chamfer = min(sx_mm, sy_mm) * 0.20
+                w, h = sx_mm, sy_mm
+                
+                # Giả lập vát góc Top-Left và Bottom-Right như trong hình chụp của bạn
+                ctx.move_to(-w/2, -h/2 + chamfer)     # Bắt đầu ở rìa trái của góc Top-Left
+                ctx.line_to(-w/2 + chamfer, -h/2)     # Cắt chéo Top-Left
+                ctx.line_to(w/2, -h/2)                # Rìa trên, đi tới Top-Right (góc vuông)
+                ctx.line_to(w/2, h/2 - chamfer)       # Rìa phải, đi tới Bottom-Right
+                ctx.line_to(w/2 - chamfer, h/2)       # Cắt chéo Bottom-Right
+                ctx.line_to(-w/2, h/2)                # Rìa dưới, đi tới Bottom-Left (góc vuông)
+                ctx.close_path()
+
+            # 5. RECTANGULAR (Chữ nhật - Mặc định cho các loại chữ nhật chưa xác định)
+            else:
+                # Cairo vẽ rect từ góc trên trái
                 ctx.rectangle(-sx_mm / 2, -sy_mm / 2, sx_mm, sy_mm)
-                ctx.fill()
-                
-            elif pad.shape == "oval":
-                # Oval (oblong) trong KiCad thường là đường thẳng nét cực dày có bo tròn 2 đầu
-                width = sy_mm
-                length = sx_mm - width
-                
+
+            # Tô màu đồng cho Pad
+            ctx.fill()
+            
+            # --- ĐỤC LỖ KHOAN CHO PAD (Nếu có) ---
+            # Giống lỗ Via, áp dụng "Cục tẩy" DEST_OUT để đục lỗ xuyên thấu
+            if hasattr(pad, 'drill') and getattr(pad, 'drill', 0) > 0:
+                drill_mm = pad.drill * self.SCALE
+                ctx.set_operator(cairo.OPERATOR_DEST_OUT)
                 ctx.new_path()
-                ctx.set_line_width(width)
-                ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-                
-                if length > 0:
-                    ctx.move_to(-length/2, 0)
-                    ctx.line_to(length/2, 0)
-                else: # Trường hợp pad dựng đứng
-                    length = sy_mm - sx_mm
-                    ctx.set_line_width(sx_mm)
-                    ctx.move_to(0, -length/2)
-                    ctx.line_to(0, length/2)
-                ctx.stroke()
+                ctx.arc(0, 0, drill_mm / 2, 0, 2*math.pi)
+                ctx.fill()
 
             ctx.restore()
-        """
         # ==========================================
         # 5. Lưu File
         # ==========================================
         for surface in self.surfaces:
             surface.finish()
         print("Đã xuất hoàn thiện bản mạch!")
+
+    def _create_oval_path(self, ctx, w, h):
+        """Tạo đường dẫn hình bầu dục (Pill shape)"""
+        r = min(w, h) / 2
+        if w > h:
+            l = (w / 2) - r
+            ctx.arc(l, 0, r, -math.pi/2, math.pi/2)    # Cung bên phải
+            ctx.arc(-l, 0, r, math.pi/2, 3*math.pi/2)  # Cung bên trái
+        else:
+            t = (h / 2) - r
+            ctx.arc(0, t, r, 0, math.pi)               # Cung bên dưới
+            ctx.arc(0, -t, r, math.pi, 2*math.pi)      # Cung bên trên
+        ctx.close_path()
