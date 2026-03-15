@@ -20,36 +20,34 @@ class PCBSVG:
         self.SCALE = 1e-6 * zoom_factor
 
         # ==========================================
-        # TÍNH MARGIN DỰA TRÊN 2 * WIDTH CỦA EDGE CUTS
+        # TÍNH MARGIN VÀ DỊCH CHUYỂN HỆ TỌA ĐỘ
         # ==========================================
         max_edge_width = 0
         if self.kicad.pcbdata.edge_cuts:
-            # Lấy độ dày lớn nhất trong tất cả các đường viền
             max_edge_width = max(edge.width for edge in self.kicad.pcbdata.edge_cuts)
         
-        # Nếu không có đường viền nào hoặc width bị bằng 0, fallback về 0.1mm (100,000 nm)
         if max_edge_width == 0:
-            max_edge_width = 100000
+            max_edge_width = 100000 # 0.1mm
             
         margin_nm = 2 * max_edge_width
 
-        # Cập nhật tọa độ biên mới với lề (tính toán trực tiếp bằng nanomet)
-        self.draw_minx = kicad.box.minx - margin_nm
-        self.draw_miny = kicad.box.miny - margin_nm
-        self.draw_maxx = kicad.box.maxx + margin_nm
-        self.draw_maxy = kicad.box.maxy + margin_nm
-
-        # Tính kích thước mặt giấy SVG dựa trên biên mới
-        dx_px = (self.draw_maxx - self.draw_minx) * self.SCALE
-        dy_px = (self.draw_maxy - self.draw_miny) * self.SCALE
+        # 1. Kích thước mặt giấy = Kích thước bo mạch + (2 * lề)
+        dx_px = ((kicad.box.maxx - kicad.box.minx) + 2 * margin_nm) * self.SCALE
+        dy_px = ((kicad.box.maxy - kicad.box.miny) + 2 * margin_nm) * self.SCALE
 
         self.layer_id_to_idx = {l.id: i for i, l in enumerate(self.kicad.stackup)}
+
+        # Tính khoảng lề bằng pixel để dịch chuyển
+        margin_px = margin_nm * self.SCALE
 
         for layer_info in self.kicad.stackup:
             filename = f"{layer_info.name}.svg"
             
             surface = cairo.SVGSurface(filename, dx_px, dy_px)
             ctx = cairo.Context(surface)
+            
+            # 2. Dịch chuyển toàn bộ hệ tọa độ sang phải và xuống dưới một khoảng bằng lề
+            ctx.translate(margin_px, margin_px)
             
             self.layer_contexts.append(ctx)
             self.surfaces.append(surface)
