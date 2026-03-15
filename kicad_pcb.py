@@ -209,6 +209,16 @@ class KiCadPCB:
     def get_arc_tracks(self):
         arc_tracks = [t for t in self.board.get_tracks() if isinstance(t, ArcTrack)]
         for t in arc_tracks:
+            if t.center() is None:
+                track_fallback = TrackData(
+                    name = t.net.name,
+                    width = t.width,
+                    layer = t.layer,
+                    start = PointData(t.start.x, t.start.y),
+                    end = PointData(t.end.x, t.end.y)
+                )
+                self.pcbdata.tracks.append(track_fallback)
+                continue
             track = ArcTrackData(
                 name = t.net.name,
                 width = t.width,
