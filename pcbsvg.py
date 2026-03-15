@@ -197,9 +197,9 @@ class PCBSVG:
             else:
                 ctx.rectangle(-sx_mm / 2, -sy_mm / 2, sx_mm, sy_mm)
 
-            # Xử lý đục lỗ khoan cho Pad PTH
+            # --- ĐỤC LỖ KHOAN CHO PAD PTH ---
             if pad.drill_size and (pad.drill_size.x > 0 or pad.drill_size.y > 0):
-                # Dịch ngược offset để lỗ khoan nằm ở tâm thực của footprint
+                # Dịch ngược offset để lỗ khoan nằm đúng tâm thực của Pad
                 ctx.translate(-off_x_mm, -off_y_mm)
                 
                 dx_mm = pad.drill_size.x * self.SCALE
@@ -207,13 +207,14 @@ class PCBSVG:
                 
                 ctx.new_sub_path()
                 
-                if pad.drill_shape == "oblong" and dx_mm != dy_mm:
+                # Bỏ qua biến drill_shape, chỉ cần x khác y là lỗ oval (slotted hole)
+                if dx_mm != dy_mm:
                     self._create_oval_path(ctx, dx_mm, dy_mm)
                 else:
                     drill_d = max(dx_mm, dy_mm)
                     ctx.arc(0, 0, drill_d / 2, 0, 2*math.pi)
                 
-            # Đổ màu một lần duy nhất
+            # --- CHỈ GỌI FILL MỘT LẦN DUY NHẤT Ở CUỐI ---
             ctx.fill()
             ctx.restore()
 
@@ -225,14 +226,21 @@ class PCBSVG:
         print("Đã xuất hoàn thiện bản mạch!")
 
     def _create_oval_path(self, ctx, w, h):
-        """Tạo đường dẫn hình bầu dục (Pill shape)"""
+        """Tạo đường dẫn hình bầu dục (Pill shape) chuẩn xác"""
         r = min(w, h) / 2
         if w > h:
             l = (w / 2) - r
+            ctx.move_to(-l, -r)         # Điểm bắt đầu: Góc trên-trái
+            ctx.line_to(l, -r)          # Kéo đường thẳng qua góc trên-phải
             ctx.arc(l, 0, r, -math.pi/2, math.pi/2)    # Cung bên phải
+            ctx.line_to(-l, r)          # Kéo đường thẳng về góc dưới-trái
             ctx.arc(-l, 0, r, math.pi/2, 3*math.pi/2)  # Cung bên trái
         else:
             t = (h / 2) - r
+            ctx.move_to(r, -t)          # Điểm bắt đầu: Góc trên-phải
+            ctx.line_to(r, t)           # Kéo đường thẳng xuống góc dưới-phải
             ctx.arc(0, t, r, 0, math.pi)               # Cung bên dưới
+            ctx.line_to(-r, -t)         # Kéo đường thẳng lên góc trên-trái
             ctx.arc(0, -t, r, math.pi, 2*math.pi)      # Cung bên trên
+            
         ctx.close_path()
