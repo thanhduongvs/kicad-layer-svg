@@ -57,6 +57,7 @@ class PadData:
     shape: str
     rounding_ratio: float
     chamfer_ratio: float
+    chamfered_corners: List[str]
     drill_size: PointData
     drill_shape: str
 

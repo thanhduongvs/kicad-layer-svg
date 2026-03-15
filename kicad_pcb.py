@@ -8,7 +8,7 @@ from collections import defaultdict
 from kipy.geometry import Vector2
 from dataclasses import dataclass, field
 from data import LayerMap, PointData, ViaData, TrackData, ArcTrackData, PcbData, PadData, BoxData, EdgeData
-from kipy.proto.board.board_types_pb2 import BoardLayer, PadType, PadStackShape, DrillShape
+from kipy.proto.board.board_types_pb2 import BoardLayer, PadType, PadStackShape, DrillShape, ChamferedRectCorners
 
 class KiCadPCB:
     def __init__(self):
@@ -245,16 +245,18 @@ class KiCadPCB:
             copper = copper_layers[0]
             shape = 'unknown'
             drill_shape = 'unknown'
+            chamfered_corners = []
             match p.padstack.drill.shape:
                 case DrillShape.DS_CIRCLE:
                     drill_shape = 'circle'
                 case DrillShape.DS_OBLONG:
-                    shape = 'oblong'
+                    drill_shape = 'oblong'
     
             match copper.shape:
                 case PadStackShape.PSS_CIRCLE:
                     shape = 'circle'
                 case PadStackShape.PSS_RECTANGLE:
+                    print("aa")
                     shape = 'rectangle'
                 case PadStackShape.PSS_OVAL:
                     shape = 'oval'
@@ -264,6 +266,15 @@ class KiCadPCB:
                     shape = 'roundrect'
                 case PadStackShape.PSS_CHAMFEREDRECT:
                     shape = 'chamferedrect'
+                    if copper.chamfered_corners.top_left:
+                        chamfered_corners.append('top_left')
+                    if copper.chamfered_corners.top_right:
+                        chamfered_corners.append('top_right')
+                    if copper.chamfered_corners.bottom_left:
+                        chamfered_corners.append('bottom_left')
+                    if copper.chamfered_corners.bottom_right:
+                        chamfered_corners.append('bottom_right')
+
             for l in p.padstack.layers:
                 if BoardLayer.BL_F_Cu <= l <= BoardLayer.BL_B_Cu:
                     pad = PadData(
@@ -277,6 +288,7 @@ class KiCadPCB:
                         shape = shape,
                         rounding_ratio = copper.corner_rounding_ratio,
                         chamfer_ratio = copper.chamfer_ratio,
+                        chamfered_corners = chamfered_corners,
                         drill_size = PointData(p.padstack.drill.diameter.x, p.padstack.drill.diameter.y),
                         drill_shape = drill_shape
                     )

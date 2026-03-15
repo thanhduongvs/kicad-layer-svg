@@ -176,7 +176,7 @@ class PCBSVG:
             
             ctx.translate(px_mm, py_mm)
             if pad.angle != 0:
-                ctx.rotate(math.radians(pad.angle))
+                ctx.rotate(math.radians(-pad.angle))
             ctx.translate(off_x_mm, off_y_mm)
 
             # Thiết lập quy tắc đổ màu đục lỗ chuẩn SVG
@@ -201,19 +201,50 @@ class PCBSVG:
                 ctx.close_path()
 
             elif "chamferedrect" in shape_type:
-                ratio = pad.chamfer_ratio if pad.chamfer_ratio > 0 else 0.20
-                chamfer = min(sx_mm, sy_mm) * ratio
-                w, h = sx_mm, sy_mm
-                ctx.move_to(-w/2, -h/2 + chamfer)     
-                ctx.line_to(-w/2 + chamfer, -h/2)     
-                ctx.line_to(w/2, -h/2)                
-                ctx.line_to(w/2, h/2 - chamfer)       
-                ctx.line_to(w/2 - chamfer, h/2)       
-                ctx.line_to(-w/2, h/2)                
-                ctx.close_path()
-
-            else:
-                ctx.rectangle(-sx_mm / 2, -sy_mm / 2, sx_mm, sy_mm)
+                w = pad.size.x * self.SCALE
+                h = pad.size.y * self.SCALE
+                
+                # Tính khoảng cách vát góc (dựa trên cạnh ngắn nhất)
+                chamfer_d = pad.chamfer_ratio * min(w, h)
+                
+                # Xác định tọa độ 4 biên so với tâm (0, 0)
+                left = -w / 2
+                right = w / 2
+                top = -h / 2
+                bottom = h / 2
+                
+                ctx.new_path() # Bắt đầu vẽ path mới
+                
+                # 1. Góc trên-trái (Top-Left)
+                if 'top_left' in pad.chamfered_corners:
+                    ctx.move_to(left, top + chamfer_d)
+                    ctx.line_to(left + chamfer_d, top)
+                else:
+                    ctx.move_to(left, top)
+                    
+                # 2. Góc trên-phải (Top-Right)
+                if 'top_right' in pad.chamfered_corners:
+                    ctx.line_to(right - chamfer_d, top)
+                    ctx.line_to(right, top + chamfer_d)
+                else:
+                    ctx.line_to(right, top)
+                    
+                # 3. Góc dưới-phải (Bottom-Right)
+                if 'bottom_right' in pad.chamfered_corners:
+                    ctx.line_to(right, bottom - chamfer_d)
+                    ctx.line_to(right - chamfer_d, bottom)
+                else:
+                    ctx.line_to(right, bottom)
+                    
+                # 4. Góc dưới-trái (Bottom-Left)
+                if 'bottom_left' in pad.chamfered_corners:
+                    ctx.line_to(left + chamfer_d, bottom)
+                    ctx.line_to(left, bottom - chamfer_d)
+                else:
+                    ctx.line_to(left, bottom)
+                    
+                ctx.close_path() # Đóng path (tự động nối về điểm bắt đầu)
+                # ctx.fill() # Gọi hàm fill() ở ngoài khối if-elif nếu bạn đang gộp chung
 
             # --- ĐỤC LỖ KHOAN CHO PAD PTH ---
             if pad.drill_size and (pad.drill_size.x > 0 or pad.drill_size.y > 0):
@@ -364,7 +395,7 @@ class PCBSVG:
                     
                     ctx.translate(px_mm, py_mm)
                     if getattr(pad, 'angle', 0) != 0:
-                        ctx.rotate(math.radians(pad.angle))
+                        ctx.rotate(math.radians(-pad.angle))
                     
                     ctx.new_sub_path() # Ngắt nét
                     if dx_mm != dy_mm: 
