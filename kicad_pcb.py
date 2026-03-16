@@ -22,13 +22,6 @@ class KiCadPCB:
             self.kicad = KiCad()
             self.board = self.kicad.get_board()
             self.connected = True
-
-            self.get_edge_cuts()
-            self.get_stackup()
-            self.get_vias()
-            self.get_tracks()
-            self.get_arc_tracks()
-            self.get_pads()
             return True, "Connected to KiCad"
             
         except Exception as e:
@@ -40,7 +33,18 @@ class KiCadPCB:
             self.stackup = []
             self.layers = []
             return False, str(e)
-        
+    
+    def get_data(self) -> bool:
+        self.get_edge_cuts()
+        if not self.box or self.box.minx == float('inf'):
+            return False
+        self.get_stackup()
+        self.get_vias()
+        self.get_tracks()
+        self.get_arc_tracks()
+        self.get_pads()
+        return True
+    
     def get_edge_cuts(self) -> BoxData:
         bounds = {
             'minx': float('inf'),
