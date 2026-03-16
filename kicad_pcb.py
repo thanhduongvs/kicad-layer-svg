@@ -1,14 +1,10 @@
-import re
 import math
 from kipy import KiCad
 from kipy.board import Board, BoardOriginType
 from kipy.board_types import Track, ArcTrack, BoardSegment, BoardRectangle, BoardPolygon, BoardArc, BoardCircle
-from typing import Set, Optional, List, Tuple, DefaultDict
-from collections import defaultdict
-from kipy.geometry import Vector2
-from dataclasses import dataclass, field
+from typing import Optional, List, Tuple
 from data import LayerMap, PointData, ViaData, TrackData, ArcTrackData, PcbData, PadData, BoxData, EdgeData
-from kipy.proto.board.board_types_pb2 import BoardLayer, PadType, PadStackShape, DrillShape, ChamferedRectCorners
+from kipy.proto.board.board_types_pb2 import BoardLayer, PadType, PadStackShape, DrillShape
 
 class KiCadPCB:
     def __init__(self):
@@ -22,8 +18,6 @@ class KiCadPCB:
 
     def connect_kicad(self) -> Tuple[bool, str]:
         try:
-            #nets = KiCad().get_board().get_nets()
-            #print(f"nets: {nets}")
             self.footprints = []
             self.kicad = KiCad()
             self.board = self.kicad.get_board()
@@ -35,7 +29,6 @@ class KiCadPCB:
             self.get_tracks()
             self.get_arc_tracks()
             self.get_pads()
-            print("done")
             return True, "Connected to KiCad"
             
         except Exception as e:
@@ -256,7 +249,6 @@ class KiCadPCB:
                 case PadStackShape.PSS_CIRCLE:
                     shape = 'circle'
                 case PadStackShape.PSS_RECTANGLE:
-                    print("aa")
                     shape = 'rectangle'
                 case PadStackShape.PSS_OVAL:
                     shape = 'oval'

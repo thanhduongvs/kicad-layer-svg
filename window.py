@@ -10,7 +10,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.setWindowTitle(f"Track Optimizer v{version}")
+        self.setWindowTitle(f"Layer SVG v{version}")
         self.pcb = KiCadPCB()
 
         QTimer.singleShot(500, self.load_initial_data)
@@ -20,7 +20,7 @@ class MainWindow(QMainWindow):
         if connected:
             self.ui.statusbar.showMessage(f"Connected to KiCad {self.pcb.kicad.get_version()}")
             PCBSVG(self.pcb)
-            print("xxxx")
+            print("Done")
         else:
             self.ui.statusbar.showMessage(status)
             QMessageBox.information(self, "Message", status)

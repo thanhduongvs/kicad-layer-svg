@@ -1,7 +1,7 @@
 {
     "$schema": "https://go.kicad.org/api/schemas/v1",
-    "identifier": "vn.thanhduongvs.track-optimizer",
-    "name": "Track Optimizer",
+    "identifier": "vn.thanhduongvs.layer-svg",
+    "name": "Layer SVG",
     "description": "Automatically clean up unconnected track ends (stubs) and merge overlapping/collinear tracks",
     "runtime": {
         "type": "python",
@@ -9,8 +9,8 @@
     },
     "actions": [
         {
-            "identifier": "track-optimizer",
-            "name": "Track Optimizer",
+            "identifier": "layer-svg",
+            "name": "Layer SVG",
             "description": "Automatically clean up unconnected track ends (stubs) and merge overlapping/collinear tracks",
             "show-button": true,
             "scopes": [

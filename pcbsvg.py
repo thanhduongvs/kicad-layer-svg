@@ -1,9 +1,6 @@
 import math
 import cairo
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from kicad_pcb import KiCadPCB
+from kicad_pcb import KiCadPCB
 
 class PCBSVG:
     def __init__(self, kicad: 'KiCadPCB'):
@@ -245,6 +242,9 @@ class PCBSVG:
                     
                 ctx.close_path() # Đóng path (tự động nối về điểm bắt đầu)
                 # ctx.fill() # Gọi hàm fill() ở ngoài khối if-elif nếu bạn đang gộp chung
+            # rectangle
+            else:
+                ctx.rectangle(-sx_mm / 2, -sy_mm / 2, sx_mm, sy_mm)
 
             # --- ĐỤC LỖ KHOAN CHO PAD PTH ---
             if pad.drill_size and (pad.drill_size.x > 0 or pad.drill_size.y > 0):
