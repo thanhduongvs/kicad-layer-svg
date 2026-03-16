@@ -1,3 +1,4 @@
+import os
 import math
 import cairo
 from kicad_pcb import KiCadPCB
@@ -38,7 +39,12 @@ class PCBSVG:
         # Tính khoảng lề bằng pixel để dịch chuyển
         margin_px = margin_nm * self.SCALE
 
+        svg_dir = os.path.join(kicad.project_path, "svg")
+        if not os.path.exists(svg_dir):
+            os.makedirs(svg_dir)
         for layer_info in self.kicad.stackup:
+            svg_file = f"{layer_info.name}.svg"
+            filename = os.path.join(svg_dir, svg_file)
             filename = f"{layer_info.name}.svg"
             
             surface = cairo.SVGSurface(filename, dx_px, dy_px)
@@ -49,8 +55,6 @@ class PCBSVG:
             
             self.layer_contexts.append(ctx)
             self.surfaces.append(surface)
-        
-        #self.draw()
 
     def draw(self):
         minx = self.kicad.box.minx
@@ -248,6 +252,49 @@ class PCBSVG:
                     
                 ctx.close_path() # Đóng path (tự động nối về điểm bắt đầu)
                 # ctx.fill() # Gọi hàm fill() ở ngoài khối if-elif nếu bạn đang gộp chung
+            elif "trapezoid" in shape_type:
+                w_mm = pad.size.x * self.SCALE
+                h_mm = pad.size.y * self.SCALE
+                
+                # KiCad lưu trữ Delta theo trục biến thiên:
+                # - Trục dọc (Vertical axis) lưu giá trị vào Y (dy)
+                # - Trục ngang (Horizontal axis) lưu giá trị vào X (dx)
+                dx = pad.trapezoid_delta.x * self.SCALE
+                dy = pad.trapezoid_delta.y * self.SCALE
+                
+                top_w, bot_w = w_mm, w_mm
+                left_h, right_h = h_mm, h_mm
+                
+                ctx.new_path()
+                
+                # dy != 0 -> Trục dọc (Vertical axis)
+                if dy != 0:
+                    if dy > 0: 
+                        top_w -= dy  # dy > 0: Cạnh trên ngắn lại
+                    else:      
+                        bot_w += dy  # dy < 0: Cạnh dưới ngắn lại (âm + âm = trừ)
+                        
+                    ctx.move_to(-top_w / 2, -h_mm / 2) # Góc trên-trái
+                    ctx.line_to( top_w / 2, -h_mm / 2) # Góc trên-phải
+                    ctx.line_to( bot_w / 2,  h_mm / 2) # Góc dưới-phải
+                    ctx.line_to(-bot_w / 2,  h_mm / 2) # Góc dưới-trái
+                        
+                # dx != 0 -> Trục ngang (Horizontal axis)
+                elif dx != 0:
+                    if dx > 0: 
+                        right_h -= dx # dx > 0: Cạnh phải ngắn lại
+                    else:      
+                        left_h += dx  # dx < 0: Cạnh trái ngắn lại
+                        
+                    ctx.move_to(-w_mm / 2, -left_h / 2)  # Góc trên-trái
+                    ctx.line_to( w_mm / 2, -right_h / 2) # Góc trên-phải
+                    ctx.line_to( w_mm / 2,  right_h / 2) # Góc dưới-phải
+                    ctx.line_to(-w_mm / 2,  left_h / 2)  # Góc dưới-trái
+                else:
+                    # Dự phòng trường hợp delta = 0 (vẽ như hình chữ nhật bình thường)
+                    ctx.rectangle(-w_mm / 2, -h_mm / 2, w_mm, h_mm)
+                    
+                ctx.close_path()
             # rectangle
             else:
                 ctx.rectangle(-sx_mm / 2, -sy_mm / 2, sx_mm, sy_mm)
@@ -429,7 +476,7 @@ class PCBSVG:
         # ==========================================
         for surface in self.surfaces:
             surface.finish()
-        print("Đã xuất hoàn thiện bản mạch!")
+        print("The circuit board has been completely exported!")
 
     def _create_oval_path(self, ctx, w, h):
         """Tạo đường dẫn hình bầu dục (Pill shape) chuẩn xác"""

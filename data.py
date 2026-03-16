@@ -58,6 +58,7 @@ class PadData:
     rounding_ratio: float
     chamfer_ratio: float
     chamfered_corners: List[str]
+    trapezoid_delta: PointData
     drill_size: PointData
     drill_shape: str
 

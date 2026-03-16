@@ -1,3 +1,4 @@
+import os
 import math
 from kipy import KiCad
 from kipy.board import Board, BoardOriginType
@@ -15,12 +16,14 @@ class KiCadPCB:
         self.stackup: List[LayerMap] = []
         self.pcbdata: PcbData = PcbData()
         self.layers: List[str] = []
+        self.project_path = ''
 
     def connect_kicad(self) -> Tuple[bool, str]:
         try:
             self.footprints = []
             self.kicad = KiCad()
             self.board = self.kicad.get_board()
+            self.project_path = self.board.document.project.path
             self.connected = True
             return True, "Connected to KiCad"
             
@@ -35,6 +38,10 @@ class KiCadPCB:
             return False, str(e)
     
     def get_data(self) -> bool:
+        self.box = None
+        self.stackup = []
+        self.pcbdata = PcbData()
+        self.layers = []
         self.get_edge_cuts()
         if not self.box or self.box.minx == float('inf'):
             return False
@@ -285,6 +292,7 @@ class KiCadPCB:
                         rounding_ratio = copper.corner_rounding_ratio,
                         chamfer_ratio = copper.chamfer_ratio,
                         chamfered_corners = chamfered_corners,
+                        trapezoid_delta = PointData(copper.trapezoid_delta.x, copper.trapezoid_delta.y),
                         drill_size = PointData(p.padstack.drill.diameter.x, p.padstack.drill.diameter.y),
                         drill_shape = drill_shape
                     )

@@ -65,14 +65,14 @@ class MainWindow(QMainWindow):
         color = QColorDialog.getColor(
             initial=current_color, 
             parent=self, 
-            title=f"Chọn màu cho {element_name}"
+            title=f"Choose a color for {element_name}"
         )
 
         if color.isValid():
             r, g, b, a = color.getRgbF()
             self.pcb_colors[element_name] = (r, g, b, a)
             self._update_button_style(button, self.pcb_colors[element_name])
-            print(f"Đã cập nhật màu {element_name}: RGB({r:.2f}, {g:.2f}, {b:.2f})")
+            print(f"Color has been updated {element_name}: RGB({r:.2f}, {g:.2f}, {b:.2f})")
 
     def _update_button_style(self, button, rgba_tuple):
         c = QColor.fromRgbF(*rgba_tuple)
@@ -98,14 +98,6 @@ class MainWindow(QMainWindow):
         if status == False:
             QMessageBox.information(self, "Message", "Please add Edge Cuts")
             return
-            
-        # TODO: Bạn có thể truyền self.pcb_colors vào PCBSVG tại đây
-        #PCBSVG(self.pcb)
         svg = PCBSVG(self.pcb, self.pcb_colors)
         svg.draw()
         print("Done")
-    
-    def button_color_clicked(self):
-        # Nút Color trên giao diện hiện tại có thể dùng để reset màu, 
-        # hoặc in ra thông số màu hiện tại để debug
-        print("Màu hiện tại đang lưu:", self.pcb_colors)
