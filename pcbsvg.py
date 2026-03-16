@@ -3,8 +3,9 @@ import cairo
 from kicad_pcb import KiCadPCB
 
 class PCBSVG:
-    def __init__(self, kicad: 'KiCadPCB'):
+    def __init__(self, kicad: KiCadPCB, colors: dict):
         self.kicad = kicad
+        self.colors = colors
         self.surfaces = []
         self.layer_contexts = []
         
@@ -49,7 +50,7 @@ class PCBSVG:
             self.layer_contexts.append(ctx)
             self.surfaces.append(surface)
         
-        self.draw()
+        #self.draw()
 
     def draw(self):
         minx = self.kicad.box.minx
@@ -66,7 +67,8 @@ class PCBSVG:
                 continue
 
             ctx = self.layer_contexts[idx]
-            ctx.set_source_rgb(0.0, 0.0, 0.0) # Màu đen
+            #ctx.set_source_rgb(0.0, 0.0, 0.0) # Màu đen
+            ctx.set_source_rgba(*self.colors.get('Track', (0.0, 0.0, 0.0, 1.0)))
             
             w_mm = track.width * self.SCALE
             sx_mm = (track.start.x - minx) * self.SCALE
@@ -90,7 +92,8 @@ class PCBSVG:
             if idx == -1: continue
 
             ctx = self.layer_contexts[idx]
-            ctx.set_source_rgb(0.0, 0.0, 0.0) # Màu đen
+            #ctx.set_source_rgb(0.0, 0.0, 0.0) # Màu đen
+            ctx.set_source_rgba(*self.colors.get('Track', (0.0, 0.0, 0.0, 1.0)))
             
             w_mm = arc.width * self.SCALE
             r_mm = arc.radius * self.SCALE
@@ -138,7 +141,9 @@ class PCBSVG:
                 
                 ctx = self.layer_contexts[idx]
                 ctx.save()
-                ctx.set_source_rgb(0.8, 0.6, 0.2) # Màu đồng
+                #ctx.set_source_rgb(0.8, 0.6, 0.2) # Màu đồng
+                # Lấy màu Via (mặc định xanh nếu lỗi)
+                ctx.set_source_rgba(*self.colors.get('Via', (0.2, 0.8, 0.2, 1.0)))
                 
                 ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
                 ctx.new_path()
@@ -168,8 +173,9 @@ class PCBSVG:
 
             ctx.save()
             
-            color = getattr(self, 'net_to_color', {}).get(pad.name, (0.8, 0.2, 0.2))
-            ctx.set_source_rgb(*color) 
+            #color = getattr(self, 'net_to_color', {}).get(pad.name, (0.8, 0.2, 0.2))
+            #ctx.set_source_rgb(*color) 
+            ctx.set_source_rgba(*self.colors.get('Pad', (0.8, 0.6, 0.2, 1.0)))
             
             ctx.translate(px_mm, py_mm)
             if pad.angle != 0:
@@ -284,7 +290,9 @@ class PCBSVG:
             # Lặp qua tất cả các lớp đồng để vẽ viền bo mạch lên mọi file SVG
             for ctx in self.layer_contexts:
                 ctx.save()
-                ctx.set_source_rgb(0.4, 0.4, 0.4) # Màu xám cho viền
+                #ctx.set_source_rgb(0.4, 0.4, 0.4) # Màu xám cho viền
+                edge_color = self.colors.get('EdgeCuts', (0.4, 0.4, 0.4, 1.0))
+                ctx.set_source_rgba(*edge_color)
                 ctx.set_line_width(w_mm)
                 ctx.set_line_cap(cairo.LINE_CAP_ROUND)
                 

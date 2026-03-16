@@ -19,7 +19,8 @@ class MainWindow(QMainWindow):
         self.pcb_colors = {
             'Track': (0.8, 0.1, 0.1, 1.0),
             'Pad': (0.8, 0.6, 0.2, 1.0),
-            'Via': (0.2, 0.8, 0.2, 1.0)
+            'Via': (0.2, 0.8, 0.2, 1.0),
+            'EdgeCuts': (0.9, 0.9, 0.0, 1.0)
         }
 
         # 2. Setup bảng chọn màu
@@ -99,7 +100,9 @@ class MainWindow(QMainWindow):
             return
             
         # TODO: Bạn có thể truyền self.pcb_colors vào PCBSVG tại đây
-        PCBSVG(self.pcb)
+        #PCBSVG(self.pcb)
+        svg = PCBSVG(self.pcb, self.pcb_colors)
+        svg.draw()
         print("Done")
     
     def button_color_clicked(self):
