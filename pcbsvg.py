@@ -131,6 +131,49 @@ class PCBSVG:
             ctx.stroke()
 
         # ==========================================
+        # 0. VẼ PHỦ ĐỒNG (ZONES)
+        # ==========================================
+        for zone in self.kicad.pcbdata.zones:
+            idx = self.layer_id_to_idx.get(zone.layer, -1)
+            if idx == -1: continue
+            
+            ctx = self.layer_contexts[idx]
+            ctx.save()
+            
+            # Lấy màu cho Zone từ bảng màu (mặc định là Đỏ bã trầu, hơi trong suốt 0.6)
+            zone_color = self.colors.get('Zone', (0.6, 0.2, 0.2, 0.6))
+            ctx.set_source_rgba(*zone_color)
+            
+            # Bật Fill Rule Even-Odd để Cairo biết tự đục lỗ (Holes)
+            ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+            ctx.new_path()
+            
+            for poly in zone.polygons:
+                # A. Vẽ Outline
+                for i, pt in enumerate(poly.outline):
+                    px = (pt.x - minx) * self.SCALE
+                    py = (pt.y - miny) * self.SCALE
+                    if i == 0:
+                        ctx.move_to(px, py)
+                    else:
+                        ctx.line_to(px, py)
+                ctx.close_path() # Đóng mảng Outline
+                
+                # B. Vẽ các Holes (Cairo sẽ đục các mảng này ra khỏi Outline)
+                for hole in poly.holes:
+                    for i, pt in enumerate(hole):
+                        px = (pt.x - minx) * self.SCALE
+                        py = (pt.y - miny) * self.SCALE
+                        if i == 0:
+                            ctx.move_to(px, py)
+                        else:
+                            ctx.line_to(px, py)
+                    ctx.close_path() # Đóng mảng Hole
+                    
+            ctx.fill()
+            ctx.restore()
+            
+        # ==========================================
         # 3. VẼ VIAS (Xuyên lỗ)
         # ==========================================
         for via in self.kicad.pcbdata.vias:

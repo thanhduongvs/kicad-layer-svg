@@ -73,6 +73,17 @@ class EdgeData:
     radius: float
 
 @dataclass
+class PolygonData:
+    outline: List[PointData]
+    holes: List[List[PointData]]
+
+@dataclass
+class ZoneData:
+    name: str
+    layer: int
+    polygons: List[PolygonData]
+
+@dataclass
 class PcbData:
     box: Optional[BoxData] = None
     vias: List[ViaData] = field(default_factory=list)
@@ -80,6 +91,7 @@ class PcbData:
     arc_tracks: List[ArcTrackData] = field(default_factory=list)
     pads: List[PadData] = field(default_factory=list)
     edge_cuts: List[EdgeData] = field(default_factory=list)
+    zones: List[ZoneData] = field(default_factory=list)
 
 @dataclass
 class NetClass:

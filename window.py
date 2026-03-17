@@ -20,7 +20,8 @@ class MainWindow(QMainWindow):
             'Track': (0.8, 0.1, 0.1, 1.0),
             'Pad': (0.8, 0.6, 0.2, 1.0),
             'Via': (0.2, 0.8, 0.2, 1.0),
-            'EdgeCuts': (0.9, 0.9, 0.0, 1.0)
+            'EdgeCuts': (0.9, 0.9, 0.0, 1.0),
+            'Zone': (0.6, 0.2, 0.2, 0.6)
         }
 
         # 2. Setup bảng chọn màu

@@ -4,8 +4,8 @@ from kipy import KiCad
 from kipy.board import Board, BoardOriginType
 from kipy.board_types import Track, ArcTrack, BoardSegment, BoardRectangle, BoardPolygon, BoardArc, BoardCircle
 from typing import Optional, List, Tuple
-from data import LayerMap, PointData, ViaData, TrackData, ArcTrackData, PcbData, PadData, BoxData, EdgeData
-from kipy.proto.board.board_types_pb2 import BoardLayer, PadType, PadStackShape, DrillShape
+from data import LayerMap, PointData, ViaData, TrackData, ArcTrackData, PcbData, PadData, BoxData, EdgeData, PolygonData, ZoneData
+from kipy.proto.board.board_types_pb2 import BoardLayer, PadType, PadStackShape, DrillShape, ZoneType
 
 class KiCadPCB:
     def __init__(self):
@@ -50,6 +50,7 @@ class KiCadPCB:
         self.get_tracks()
         self.get_arc_tracks()
         self.get_pads()
+        self.get_zones()
         return True
     
     def get_edge_cuts(self) -> BoxData:
@@ -297,7 +298,40 @@ class KiCadPCB:
                         drill_shape = drill_shape
                     )
                     self.pcbdata.pads.append(pad)
-
+    
+    def get_zones(self):
+        for zone in self.board.get_zones():
+            # Chỉ lấy các zone ĐỒNG và đã được FILL (phủ)
+            if not zone.filled or zone.type != ZoneType.ZT_COPPER:
+                continue
+                
+            # zone.filled_polygons trả về dict: { layer_id: [PolygonWithHoles, ...] }
+            for layer_id, polys in zone.filled_polygons.items():
+                zone_polygons = []
+                
+                for p in polys:
+                    # 1. Trích xuất đường bao ngoài (Outline)
+                    outline_pts = []
+                    if hasattr(p, 'outline') and p.outline.nodes:
+                        outline_pts = [PointData(node.point.x, node.point.y) for node in p.outline.nodes]
+                    
+                    # 2. Trích xuất các lỗ đục bên trong (Holes)
+                    holes_pts = []
+                    if hasattr(p, 'holes'):
+                        for hole in p.holes:
+                            if hole.nodes:
+                                holes_pts.append([PointData(node.point.x, node.point.y) for node in hole.nodes])
+                                
+                    if outline_pts:
+                        zone_polygons.append(PolygonData(outline=outline_pts, holes=holes_pts))
+                
+                if zone_polygons:
+                    net_name = zone.net.name if zone.net else "No_Net"
+                    self.pcbdata.zones.append(ZoneData(
+                        name=net_name,
+                        layer=layer_id,
+                        polygons=zone_polygons
+                    ))
 
 def update_bounds(x, y, bounds):
     """
