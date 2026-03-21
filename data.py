@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 @dataclass
 class LayerMap:
@@ -92,6 +92,7 @@ class PcbData:
     pads: List[PadData] = field(default_factory=list)
     edge_cuts: List[EdgeData] = field(default_factory=list)
     zones: List[ZoneData] = field(default_factory=list)
+    net_classes: Dict[str, str] = field(default_factory=dict)
 
 @dataclass
 class NetClass:

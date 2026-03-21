@@ -24,6 +24,7 @@ class KiCadPCB:
             self.kicad = KiCad()
             self.board = self.kicad.get_board()
             self.project_path = self.board.document.project.path
+            self.get_net_classes()
             self.connected = True
             return True, "Connected to KiCad"
             
@@ -38,14 +39,15 @@ class KiCadPCB:
             return False, str(e)
     
     def get_data(self) -> bool:
+        saved_net_classes = self.pcbdata.net_classes
         self.box = None
         self.stackup = []
         self.pcbdata = PcbData()
         self.layers = []
-        self.get_net_classes()
         self.get_edge_cuts()
         if not self.box or self.box.minx == float('inf'):
             return False
+        self.pcbdata.net_classes = saved_net_classes
         self.get_stackup()
         self.get_vias()
         self.get_tracks()
@@ -166,12 +168,13 @@ class KiCadPCB:
 
     def get_net_classes(self):
         net_classes = KiCad().get_project(KiCad().get_board().document).get_net_classes()
-        names = [t.name for t in net_classes if t.name != 'Default']
+        names = [t.name for t in net_classes]
         print(names)
         for name in names:
-            print(name)
             nets = KiCad().get_board().get_nets(netclass_filter=name)
-            print(f"nets: {nets}")
+            for net in nets:
+                # Lưu ánh xạ (Ví dụ: "GND" -> "Power")
+                self.pcbdata.net_classes[net.name] = name
         
     def get_stackup(self):
         stackup = self.board.get_stackup()

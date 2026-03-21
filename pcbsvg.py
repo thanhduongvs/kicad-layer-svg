@@ -72,7 +72,8 @@ class PCBSVG:
 
             ctx = self.layer_contexts[idx]
             #ctx.set_source_rgb(0.0, 0.0, 0.0) # Màu đen
-            ctx.set_source_rgba(*self.colors.get('Track', (0.0, 0.0, 0.0, 1.0)))
+            #ctx.set_source_rgba(*self.colors.get('Track', (0.0, 0.0, 0.0, 1.0)))
+            ctx.set_source_rgba(*self._get_track_color(track.name))
             
             w_mm = track.width * self.SCALE
             sx_mm = (track.start.x - minx) * self.SCALE
@@ -97,7 +98,8 @@ class PCBSVG:
 
             ctx = self.layer_contexts[idx]
             #ctx.set_source_rgb(0.0, 0.0, 0.0) # Màu đen
-            ctx.set_source_rgba(*self.colors.get('Track', (0.0, 0.0, 0.0, 1.0)))
+            #ctx.set_source_rgba(*self.colors.get('Track', (0.0, 0.0, 0.0, 1.0)))
+            ctx.set_source_rgba(*self._get_track_color(arc.name))
             
             w_mm = arc.width * self.SCALE
             r_mm = arc.radius * self.SCALE
@@ -540,3 +542,13 @@ class PCBSVG:
             ctx.arc(0, -t, r, math.pi, 2*math.pi)      # Cung bên trên
             
         ctx.close_path()
+    
+    def _get_track_color(self, net_name: str) -> tuple:
+        """Lấy màu tương ứng với Net Class của Track, nếu không có thì dùng màu Track mặc định"""
+        nc_name = self.kicad.pcbdata.net_classes.get(net_name)
+        if nc_name:
+            color_key = f"Track ({nc_name})"
+            if color_key in self.colors:
+                return self.colors[color_key]
+        
+        return self.colors.get('Track', (0.0, 0.0, 0.0, 1.0))

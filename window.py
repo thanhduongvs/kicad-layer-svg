@@ -16,8 +16,16 @@ class MainWindow(QMainWindow):
         self.pcb = KiCadPCB()
 
         # 1. Khởi tạo dữ liệu màu mặc định (RGB dạng float 0.0 - 1.0)
+        """
         self.pcb_colors = {
             'Track': (0.8, 0.1, 0.1, 1.0),
+            'Pad': (0.8, 0.6, 0.2, 1.0),
+            'Via': (0.2, 0.8, 0.2, 1.0),
+            'EdgeCuts': (0.9, 0.9, 0.0, 1.0),
+            'Zone': (0.6, 0.2, 0.2, 0.6)
+        }"""
+
+        self.pcb_colors = {
             'Pad': (0.8, 0.6, 0.2, 1.0),
             'Via': (0.2, 0.8, 0.2, 1.0),
             'EdgeCuts': (0.9, 0.9, 0.0, 1.0),
@@ -90,15 +98,34 @@ class MainWindow(QMainWindow):
         connected, status = self.pcb.connect_kicad()
         if connected:
             self.ui.statusbar.showMessage(f"Connected to KiCad {self.pcb.kicad.get_version()}")
+
+            # --- THÊM ĐOẠN NÀY ĐỂ CẬP NHẬT BẢNG MÀU UI ---
+            has_new_colors = False
+            # Lấy danh sách các Net Class độc nhất đã quét được
+            unique_net_classes = set(self.pcb.pcbdata.net_classes.values())
+            
+            for nc_name in unique_net_classes:
+                color_key = f"Track ({nc_name})"
+                if color_key not in self.pcb_colors:
+                    # Gán màu mặc định (VD: Xanh biển nhạt) cho Net Class mới
+                    self.pcb_colors[color_key] = (0.2, 0.5, 0.8, 1.0) 
+                    has_new_colors = True
+            
+            # Nếu có Net Class mới, vẽ lại bảng UI để hiển thị nút đổi màu
+            if has_new_colors:
+                self.setup_color_table()
         else:
             self.ui.statusbar.showMessage(status)
             QMessageBox.information(self, "Message", status)
+        
+        
 
     def button_run_clicked(self):
         status = self.pcb.get_data()
         if status == False:
             QMessageBox.information(self, "Message", "Please add Edge Cuts")
             return
+
         svg = PCBSVG(self.pcb, self.pcb_colors)
         svg.draw()
         print("Done")
