@@ -42,6 +42,7 @@ class KiCadPCB:
         self.stackup = []
         self.pcbdata = PcbData()
         self.layers = []
+        self.get_net_classes()
         self.get_edge_cuts()
         if not self.box or self.box.minx == float('inf'):
             return False
@@ -164,17 +165,13 @@ class KiCadPCB:
         )
 
     def get_net_classes(self):
-        nets = KiCad().get_board().get_nets()
-        net_classes = KiCad().get_board().get_netclass_for_nets(nets)
-        print(f"nets: {net_classes}")
-        #net_classes = KiCad().get_project(KiCad().get_board().document).get_net_classes()
-        #names = [t.name for t in net_classes if t.name != 'Default']
-        #print(names)
-        #for name in names:
-            #print(name)
-            #nets = KiCad().get_board().get_nets(netclass_filter=name)
-            #nets = self.board.get_nets(netclass_filter=name)
-            #print(f"nets: {nets}")
+        net_classes = KiCad().get_project(KiCad().get_board().document).get_net_classes()
+        names = [t.name for t in net_classes if t.name != 'Default']
+        print(names)
+        for name in names:
+            print(name)
+            nets = KiCad().get_board().get_nets(netclass_filter=name)
+            print(f"nets: {nets}")
         
     def get_stackup(self):
         stackup = self.board.get_stackup()
